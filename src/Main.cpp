@@ -8,8 +8,11 @@
 #include "Logger.h"
 #include "DrawingUtil.h"
 #include "IO.h"
+#include "NetworkingConstants.h"
 
 #define JOY_NUM 0
+
+#define JOY_MIN_DELTA 0.1
 
 #define COL1 128
 #define COL2 300
@@ -20,6 +23,8 @@
 
 using namespace std;
 using namespace trickfire;
+
+double prevJoyX, prevJoyY;
 
 void PacketReceived(Packet& packet) {
 	while (!packet.endOfPacket()) {
@@ -81,7 +86,7 @@ void * WindowThread(void * serv) {
 		cerr << "Error loading font" << endl;
 	}
 
-	RenderWindow window(VideoMode(1366, 768), "TrickFire Robotics - Server");
+	RenderWindow window(VideoMode(500, 768), "TrickFire Robotics - Server");
 
 	while (window.isOpen()) {
 
@@ -90,11 +95,27 @@ void * WindowThread(void * serv) {
 			if (event.type == sf::Event::Closed) {
 				window.close();
 			}
-
-			UpdateGUI(wlmCarton, server, window);
 		}
 
+		UpdateGUI(wlmCarton, server, window);
+
 		window.display();
+
+		if (server->IsConnected()) {
+			double joyDX = IO::JoyX(JOY_NUM) - prevJoyX;
+			double joyDY = IO::JoyY(JOY_NUM) - prevJoyY;
+
+			if (sqrt(joyDX * joyDX + joyDY * joyDY) >= JOY_MIN_DELTA) {
+				prevJoyX = IO::JoyX(JOY_NUM);
+				prevJoyY = IO::JoyY(JOY_NUM);
+
+				Packet packet;
+				packet << DRIVE_PACKET;
+				packet << IO::JoyY(JOY_NUM);
+				packet << IO::JoyX(JOY_NUM);
+				server->Send(packet);
+			}
+		}
 	}
 
 	return NULL;
@@ -110,6 +131,8 @@ int main() {
 	pthread_create(&windowThread, NULL, WindowThread, (void *) &server);
 
 	pthread_join(windowThread, NULL);
+
+	server.Disconnect();
 
 	return 0;
 }
