@@ -1,6 +1,8 @@
 #ifndef IO_H_
 #define IO_H_
 
+#define JOY_SUB 1
+
 namespace trickfire {
 
 class IO {

@@ -12,7 +12,7 @@
 
 #define JOY_NUM 0
 
-#define JOY_MIN_DELTA 0.1
+#define JOY_MIN_DELTA 0.01
 
 #define COL1 128
 #define COL2 300
