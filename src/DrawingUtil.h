@@ -7,8 +7,9 @@ namespace trickfire {
 
 class DrawingUtil {
 public:
-	static inline Vector2f DrawGenericHeader(std::string text, Vector2f position, bool centered,
-			Font& font, const Color & color, RenderWindow& window) {
+	static inline Vector2f DrawGenericHeader(std::string text,
+			Vector2f position, bool centered, Font& font, const Color & color,
+			RenderWindow& window) {
 		Text header;
 		header.setFont(font);
 		header.setCharacterSize(48);
@@ -22,11 +23,13 @@ public:
 		}
 		header.setPosition(position);
 		window.draw(header);
-		return Vector2f(header.getLocalBounds().width, header.getLocalBounds().height);
+		return Vector2f(header.getLocalBounds().width,
+				header.getLocalBounds().height);
 	}
 
-	static inline void DrawCenteredAxisBar(double value, Vector2f position, Vector2f dimension,
-			Vector2f border, const Color & back, const Color & front, RenderWindow& window) {
+	static inline void DrawCenteredAxisBar(double value, Vector2f position,
+			Vector2f dimension, Vector2f border, const Color & back,
+			const Color & front, RenderWindow& window) {
 		RectangleShape background(dimension);
 		background.setFillColor(back);
 		background.setPosition(position);
@@ -37,8 +40,24 @@ public:
 						-value * ((dimension.y - (border.y * 2)) / 2)));
 		bar.setFillColor(front);
 		bar.setPosition(
-				Vector2f(position.x + border.x, position.y + (dimension.y / 2)));
+				Vector2f(position.x + border.x,
+						position.y + (dimension.y / 2)));
 		window.draw(bar);
+	}
+
+	static inline void DrawCenteredIndicatorLight(bool on, Vector2f position,
+			float dimension, int border, const Color & back,
+			const Color & front, RenderWindow& window) {
+		CircleShape background(dimension / 2);
+		background.setFillColor(back);
+		background.setPosition(position - Vector2f(background.getRadius(), background.getRadius()));
+		window.draw(background);
+		if (on) {
+			CircleShape foreground((dimension / 2) - border);
+			foreground.setFillColor(front);
+			foreground.setPosition(position - Vector2f(foreground.getRadius(), foreground.getRadius()));
+			window.draw(foreground);
+		}
 	}
 };
 }

@@ -97,6 +97,8 @@ void * WindowThread(void * serv) {
 			}
 		}
 
+		IO::UpdateButtonStates();
+
 		UpdateGUI(wlmCarton, server, window);
 
 		window.display();
@@ -114,6 +116,12 @@ void * WindowThread(void * serv) {
 				packet << IO::JoyY(JOY_NUM);
 				packet << IO::JoyX(JOY_NUM);
 				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 0)) {
+				Packet packet;
+				packet << AUTO_PACKET_1;
+				//server->Send(packet);
 			}
 		}
 	}

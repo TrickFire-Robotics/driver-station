@@ -5,6 +5,10 @@
 using namespace sf;
 
 namespace trickfire {
+
+std::array<bool, JOY_COUNT * 11> IO::prevButtonStates;
+std::array<bool, IO::prevButtonStates.size()> IO::currButtonStates;
+
 double IO::JoyX(unsigned int stick) {
 	if (IsJoyConnected(stick)) {
 		return Joystick::getAxisPosition(stick, Joystick::X) / 100;
@@ -42,10 +46,25 @@ double IO::JoyY(unsigned int stick) {
 }
 
 bool IO::JoyButton(unsigned int stick, unsigned int button) {
-	return Joystick::isButtonPressed(stick, button);
+	return currButtonStates[stick * 11 + button];
+}
+
+bool IO::JoyButtonTrig(unsigned int stick, unsigned int button) {
+	return currButtonStates[stick * 11 + button] && !prevButtonStates[stick * 11 + button];
 }
 
 bool IO::IsJoyConnected(unsigned int stick) {
 	return Joystick::isConnected(stick);
+}
+
+void IO::UpdateButtonStates() {
+	for (unsigned int i = 0; i < prevButtonStates.size(); i++) {
+		prevButtonStates[i] = currButtonStates[i];
+	}
+	for (unsigned int i = 0; i < currButtonStates.size(); i++) {
+		unsigned int stick = i / 11;
+		unsigned int button = i % 11;
+		currButtonStates[i] = Joystick::isButtonPressed(stick, button);
+	}
 }
 }
