@@ -118,10 +118,10 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 0)) {
+			if (IO::JoyButtonTrig(JOY_NUM, 0) || Keyboard::isKeyPressed(Keyboard::Y)) {
 				Packet packet;
 				packet << AUTO_PACKET_1;
-				//server->Send(packet);
+				server->Send(packet);
 			}
 		}
 	}
