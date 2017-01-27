@@ -4,6 +4,8 @@
 #include <SFML/Graphics.hpp>
 #include <pthread.h>
 
+#include <opencv.hpp>
+
 #include "Server.h"
 #include "Logger.h"
 #include "DrawingUtil.h"
@@ -20,11 +22,19 @@
 #define ROW1 8
 #define ROW2 64
 #define ROW3 128
+#define ROW4 ROW3+264+16
 
 using namespace std;
 using namespace trickfire;
 
 double prevJoyX, prevJoyY;
+bool prevKeyY, currKeyY;
+
+cv::VideoCapture cap(0);
+cv::Mat frameRGB, frameRGBA;
+sf::Image image;
+sf::Texture texture;
+sf::Sprite sprite;
 
 void PacketReceived(Packet& packet) {
 	while (!packet.endOfPacket()) {
@@ -46,6 +56,20 @@ void DrawTrickFireHeader(Font& font, RenderWindow& window) {
 	header.setOrigin(0, 2 * header.getLocalBounds().height);
 	header.setRotation(90);
 	window.draw(header);
+}
+
+void UpdateCameraFrame() {
+	cap >> frameRGB;
+	double scale = 0.2;
+	cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
+
+	if (!frameRGB.empty()) {
+		cv::cvtColor(frameRGB, frameRGBA, cv::COLOR_BGR2RGBA);
+		image.create(frameRGBA.cols, frameRGBA.rows, frameRGBA.ptr());
+		if (texture.loadFromImage(image)) {
+			sprite.setTexture(texture);
+		}
+	}
 }
 
 void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
@@ -76,6 +100,13 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 			Vector2f(COL2 + (joyYLabelSize.x / 2) - 20, ROW3),
 			Vector2f(40, 264), Vector2f(4, 4), background, Color::Green,
 			window);
+
+	// Camera feed
+	int targetSize = 320;
+	sprite.setScale((double) targetSize / texture.getSize().x,
+			(double) targetSize / texture.getSize().x);
+	sprite.setPosition(COL1, ROW4);
+	window.draw(sprite);
 }
 
 void * WindowThread(void * serv) {
@@ -89,7 +120,6 @@ void * WindowThread(void * serv) {
 	RenderWindow window(VideoMode(500, 768), "TrickFire Robotics - Server");
 
 	while (window.isOpen()) {
-
 		Event event;
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed) {
@@ -99,7 +129,12 @@ void * WindowThread(void * serv) {
 
 		IO::UpdateButtonStates();
 
+		UpdateCameraFrame();
+
 		UpdateGUI(wlmCarton, server, window);
+
+		prevKeyY = currKeyY;
+		currKeyY = Keyboard::isKeyPressed(Keyboard::Y);
 
 		window.display();
 
@@ -118,10 +153,29 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 0) || Keyboard::isKeyPressed(Keyboard::Y)) {
+			if (IO::JoyButtonTrig(JOY_NUM, 0) || (prevKeyY && !currKeyY)) {
 				Packet packet;
 				packet << AUTO_PACKET_1;
 				server->Send(packet);
+			}
+
+			if (Keyboard::isKeyPressed(Keyboard::C)) {
+				Packet camPacket;
+				camPacket << CAMERA_PACKET;
+				camPacket << frameRGB.rows;
+				camPacket << frameRGB.cols;
+
+				uint8_t* pixelPtr = (uint8_t*) frameRGB.data;
+				for (int y = 0; y < frameRGB.rows; y++) {
+					for (int x = 0; x < frameRGB.cols; x++) {
+						camPacket << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 0];
+						camPacket << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 1];
+						camPacket << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 2];
+					}
+				}
+
+
+				server->Send(camPacket);
 			}
 		}
 	}
