@@ -30,19 +30,54 @@ using namespace trickfire;
 double prevJoyX, prevJoyY;
 bool prevKeyY, currKeyY;
 
-cv::VideoCapture cap(0);
+sf::Mutex mutex_cameraVars;
 cv::Mat frameRGB, frameRGBA;
 sf::Image image;
 sf::Texture texture;
 sf::Sprite sprite;
 
+void UpdateCameraFrame() {
+	//cap >> frameRGB;
+	//double scale = 0.2;
+	//cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
+
+	if (!frameRGB.empty()) {
+		cv::cvtColor(frameRGB, frameRGBA, cv::COLOR_BGR2RGBA);
+		image.create(frameRGBA.cols, frameRGBA.rows, frameRGBA.ptr());
+		if (texture.loadFromImage(image)) {
+			sprite.setTexture(texture);
+		}
+	}
+}
+
 void PacketReceived(Packet& packet) {
 	while (!packet.endOfPacket()) {
-		int i;
+		int type = -1;
+		packet >> type;
 
-		packet >> i;
+		switch (type) {
+		case CAMERA_PACKET: {
+			int rows, cols;
+			packet >> rows >> cols;
+			mutex_cameraVars.lock();
+			frameRGB = cv::Mat(rows, cols, 16);
+			uint8_t* newdata = (uint8_t*) frameRGB.data;
 
-		cout << "Received: " << i << endl;
+			for (int y = 0; y < frameRGB.rows; y++) {
+				for (int x = 0; x < frameRGB.cols; x++) {
+					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 0];
+					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 1];
+					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 2];
+				}
+			}
+			UpdateCameraFrame();
+			mutex_cameraVars.unlock();
+			break;
+		}
+		default:
+
+			break;
+		}
 	}
 }
 
@@ -56,20 +91,6 @@ void DrawTrickFireHeader(Font& font, RenderWindow& window) {
 	header.setOrigin(0, 2 * header.getLocalBounds().height);
 	header.setRotation(90);
 	window.draw(header);
-}
-
-void UpdateCameraFrame() {
-	cap >> frameRGB;
-	double scale = 0.2;
-	cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
-
-	if (!frameRGB.empty()) {
-		cv::cvtColor(frameRGB, frameRGBA, cv::COLOR_BGR2RGBA);
-		image.create(frameRGBA.cols, frameRGBA.rows, frameRGBA.ptr());
-		if (texture.loadFromImage(image)) {
-			sprite.setTexture(texture);
-		}
-	}
 }
 
 void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
@@ -102,11 +123,13 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 			window);
 
 	// Camera feed
+	mutex_cameraVars.lock();
 	int targetSize = 320;
 	sprite.setScale((double) targetSize / texture.getSize().x,
 			(double) targetSize / texture.getSize().x);
 	sprite.setPosition(COL1, ROW4);
 	window.draw(sprite);
+	mutex_cameraVars.unlock();
 }
 
 void * WindowThread(void * serv) {
@@ -159,7 +182,7 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
-			if (Keyboard::isKeyPressed(Keyboard::C)) {
+			/*if (Keyboard::isKeyPressed(Keyboard::C)) {
 				Packet camPacket;
 				camPacket << CAMERA_PACKET;
 				camPacket << frameRGB.rows;
@@ -168,15 +191,17 @@ void * WindowThread(void * serv) {
 				uint8_t* pixelPtr = (uint8_t*) frameRGB.data;
 				for (int y = 0; y < frameRGB.rows; y++) {
 					for (int x = 0; x < frameRGB.cols; x++) {
-						camPacket << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 0];
-						camPacket << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 1];
-						camPacket << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 2];
+						camPacket
+								<< pixelPtr[y * frameRGB.cols * 3 + x * 3 + 0];
+						camPacket
+								<< pixelPtr[y * frameRGB.cols * 3 + x * 3 + 1];
+						camPacket
+								<< pixelPtr[y * frameRGB.cols * 3 + x * 3 + 2];
 					}
 				}
 
-
 				server->Send(camPacket);
-			}
+			}*/
 		}
 	}
 
