@@ -40,7 +40,7 @@ void UpdateCameraFrame() {
 	//cap >> frameRGB;
 	//double scale = 0.2;
 	//cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
-
+	mutex_cameraVars.lock();
 	if (!frameRGB.empty()) {
 		cv::cvtColor(frameRGB, frameRGBA, cv::COLOR_BGR2RGBA);
 		image.create(frameRGBA.cols, frameRGBA.rows, frameRGBA.ptr());
@@ -48,6 +48,7 @@ void UpdateCameraFrame() {
 			sprite.setTexture(texture);
 		}
 	}
+	mutex_cameraVars.unlock();
 }
 
 void PacketReceived(Packet& packet) {
