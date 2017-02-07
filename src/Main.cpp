@@ -40,7 +40,6 @@ void UpdateCameraFrame() {
 	//cap >> frameRGB;
 	//double scale = 0.2;
 	//cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
-	mutex_cameraVars.lock();
 	if (!frameRGB.empty()) {
 		cv::cvtColor(frameRGB, frameRGBA, cv::COLOR_BGR2RGBA);
 		image.create(frameRGBA.cols, frameRGBA.rows, frameRGBA.ptr());
@@ -48,7 +47,6 @@ void UpdateCameraFrame() {
 			sprite.setTexture(texture);
 		}
 	}
-	mutex_cameraVars.unlock();
 }
 
 void PacketReceived(Packet& packet) {
@@ -71,7 +69,7 @@ void PacketReceived(Packet& packet) {
 					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 2];
 				}
 			}
-			UpdateCameraFrame();
+			//UpdateCameraFrame();
 			mutex_cameraVars.unlock();
 			break;
 		}
@@ -125,6 +123,7 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 
 	// Camera feed
 	mutex_cameraVars.lock();
+	UpdateCameraFrame();
 	int targetSize = 320;
 	sprite.setScale((double) targetSize / texture.getSize().x,
 			(double) targetSize / texture.getSize().x);
@@ -152,8 +151,6 @@ void * WindowThread(void * serv) {
 		}
 
 		IO::UpdateButtonStates();
-
-		UpdateCameraFrame();
 
 		UpdateGUI(wlmCarton, server, window);
 
