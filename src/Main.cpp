@@ -18,11 +18,14 @@
 
 #define COL1 128
 #define COL2 300
+#define COL3 472
 
 #define ROW1 8
 #define ROW2 64
 #define ROW3 128
 #define ROW4 ROW3+264+16
+
+#define CAM_COUNT 5
 
 using namespace std;
 using namespace trickfire;
@@ -31,20 +34,21 @@ double prevJoyX, prevJoyY;
 bool prevKeyY, currKeyY;
 
 sf::Mutex mutex_cameraVars;
-cv::Mat frameRGB, frameRGBA;
-sf::Image image;
-sf::Texture texture;
-sf::Sprite sprite;
+cv::Mat frameRGB[CAM_COUNT], frameRGBA[CAM_COUNT];
+sf::Image image[CAM_COUNT];
+sf::Texture texture[CAM_COUNT];
+sf::Sprite sprite[CAM_COUNT];
 
-void UpdateCameraFrame() {
+void UpdateCameraFrame(int cam) {
 	//cap >> frameRGB;
 	//double scale = 0.2;
 	//cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
-	if (!frameRGB.empty()) {
-		cv::cvtColor(frameRGB, frameRGBA, cv::COLOR_BGR2RGBA);
-		image.create(frameRGBA.cols, frameRGBA.rows, frameRGBA.ptr());
-		if (texture.loadFromImage(image)) {
-			sprite.setTexture(texture);
+	if (!frameRGB[cam].empty()) {
+		cv::cvtColor(frameRGB[cam], frameRGBA[cam], cv::COLOR_BGR2RGBA);
+		image[cam].create(frameRGBA[cam].cols, frameRGBA[cam].rows,
+				frameRGBA[cam].ptr());
+		if (texture[cam].loadFromImage(image[cam])) {
+			sprite[cam].setTexture(texture[cam]);
 		}
 	}
 }
@@ -56,20 +60,20 @@ void PacketReceived(Packet& packet) {
 
 		switch (type) {
 		case CAMERA_PACKET: {
+			int cam;
 			int rows, cols;
-			packet >> rows >> cols;
+			packet >> cam >> rows >> cols;
 			mutex_cameraVars.lock();
-			frameRGB = cv::Mat(rows, cols, 16);
-			uint8_t* newdata = (uint8_t*) frameRGB.data;
+			frameRGB[cam] = cv::Mat(rows, cols, 16);
+			uint8_t* newdata = (uint8_t*) frameRGB[cam].data;
 
-			for (int y = 0; y < frameRGB.rows; y++) {
-				for (int x = 0; x < frameRGB.cols; x++) {
-					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 0];
-					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 1];
-					packet >> newdata[y * frameRGB.cols * 3 + x * 3 + 2];
+			for (int y = 0; y < frameRGB[0].rows; y++) {
+				for (int x = 0; x < frameRGB[0].cols; x++) {
+					packet >> newdata[y * frameRGB[cam].cols * 3 + x * 3 + 0];
+					packet >> newdata[y * frameRGB[cam].cols * 3 + x * 3 + 1];
+					packet >> newdata[y * frameRGB[cam].cols * 3 + x * 3 + 2];
 				}
 			}
-			//UpdateCameraFrame();
 			mutex_cameraVars.unlock();
 			break;
 		}
@@ -123,12 +127,23 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 
 	// Camera feed
 	mutex_cameraVars.lock();
-	UpdateCameraFrame();
+	for (int i = 0; i < CAM_COUNT; i++) {
+		UpdateCameraFrame(i);
+	}
+
 	int targetSize = 320;
-	sprite.setScale((double) targetSize / texture.getSize().x,
-			(double) targetSize / texture.getSize().x);
-	sprite.setPosition(COL1, ROW4);
-	window.draw(sprite);
+	sprite[0].setScale((double) targetSize / texture[0].getSize().x,
+			(double) targetSize / texture[0].getSize().x);
+	sprite[0].setPosition(COL3, ROW2);
+	window.draw(sprite[0]);
+	sprite[1].setScale((double) targetSize / texture[0].getSize().x,
+			(double) targetSize / texture[0].getSize().x);
+	sprite[1].setPosition(COL1, ROW4);
+	window.draw(sprite[1]);
+	sprite[2].setScale((double) targetSize / texture[0].getSize().x,
+			(double) targetSize / texture[0].getSize().x);
+	sprite[2].setPosition(COL3, ROW4);
+	window.draw(sprite[2]);
 	mutex_cameraVars.unlock();
 }
 
@@ -140,7 +155,7 @@ void * WindowThread(void * serv) {
 		cerr << "Error loading font" << endl;
 	}
 
-	RenderWindow window(VideoMode(500, 768), "TrickFire Robotics - Server");
+	RenderWindow window(VideoMode(1000, 768), "TrickFire Robotics - Server");
 
 	while (window.isOpen()) {
 		Event event;
@@ -181,25 +196,25 @@ void * WindowThread(void * serv) {
 			}
 
 			/*if (Keyboard::isKeyPressed(Keyboard::C)) {
-				Packet camPacket;
-				camPacket << CAMERA_PACKET;
-				camPacket << frameRGB.rows;
-				camPacket << frameRGB.cols;
+			 Packet camPacket;
+			 camPacket << CAMERA_PACKET;
+			 camPacket << frameRGB.rows;
+			 camPacket << frameRGB.cols;
 
-				uint8_t* pixelPtr = (uint8_t*) frameRGB.data;
-				for (int y = 0; y < frameRGB.rows; y++) {
-					for (int x = 0; x < frameRGB.cols; x++) {
-						camPacket
-								<< pixelPtr[y * frameRGB.cols * 3 + x * 3 + 0];
-						camPacket
-								<< pixelPtr[y * frameRGB.cols * 3 + x * 3 + 1];
-						camPacket
-								<< pixelPtr[y * frameRGB.cols * 3 + x * 3 + 2];
-					}
-				}
+			 uint8_t* pixelPtr = (uint8_t*) frameRGB.data;
+			 for (int y = 0; y < frameRGB.rows; y++) {
+			 for (int x = 0; x < frameRGB.cols; x++) {
+			 camPacket
+			 << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 0];
+			 camPacket
+			 << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 1];
+			 camPacket
+			 << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 2];
+			 }
+			 }
 
-				server->Send(camPacket);
-			}*/
+			 server->Send(camPacket);
+			 }*/
 		}
 	}
 
