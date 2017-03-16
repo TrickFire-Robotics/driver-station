@@ -177,21 +177,40 @@ void * WindowThread(void * serv) {
 		if (server->IsConnected()) {
 			double joyDX = IO::JoyX(JOY_NUM) - prevJoyX;
 			double joyDY = IO::JoyY(JOY_NUM) - prevJoyY;
+			double driveScale = 1.0;
 
 			if (sqrt(joyDX * joyDX + joyDY * joyDY) >= JOY_MIN_DELTA) {
-				prevJoyX = IO::JoyX(JOY_NUM);
-				prevJoyY = IO::JoyY(JOY_NUM);
+				prevJoyX = IO::JoyX(JOY_NUM) * driveScale;
+				prevJoyY = IO::JoyY(JOY_NUM) * driveScale;
 
 				Packet packet;
 				packet << DRIVE_PACKET;
-				packet << IO::JoyY(JOY_NUM);
-				packet << IO::JoyX(JOY_NUM);
+				packet << IO::JoyY(JOY_NUM) * driveScale;
+				packet << IO::JoyX(JOY_NUM) * driveScale;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 0) || (prevKeyY && !currKeyY)) {
+			if (IO::JoyButtonTrig(JOY_NUM, 2) || (!IO::IsJoyConnected(JOY_NUM) && (prevKeyY && !currKeyY))) {
 				Packet packet;
 				packet << AUTO_PACKET_1;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 1)) {
+				Packet packet;
+				packet << AUTO_PACKET_1 + 1;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 3)) {
+				Packet packet;
+				packet << AUTO_PACKET_1 + 2;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 4)) {
+				Packet packet;
+				packet << AUTO_PACKET_1 + 3;
 				server->Send(packet);
 			}
 
