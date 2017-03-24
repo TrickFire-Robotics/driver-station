@@ -53,6 +53,10 @@ bool IO::JoyButtonTrig(unsigned int stick, unsigned int button) {
 	return currButtonStates[stick * 11 + button] && !prevButtonStates[stick * 11 + button];
 }
 
+bool IO::JoyButtonUntrig(unsigned int stick, unsigned int button) {
+	return !currButtonStates[stick * 11 + button] && prevButtonStates[stick * 11 + button];
+}
+
 bool IO::IsJoyConnected(unsigned int stick) {
 	return Joystick::isConnected(stick);
 }

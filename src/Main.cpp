@@ -31,7 +31,10 @@ using namespace std;
 using namespace trickfire;
 
 double prevJoyX, prevJoyY;
-bool prevKeyY, currKeyY;
+bool prevKeyO, currKeyO;
+bool prevKeyL, currKeyL;
+bool prevKeyI, currKeyI;
+bool prevKeyK, currKeyK;
 
 sf::Mutex mutex_cameraVars;
 cv::Mat frameRGB[CAM_COUNT], frameRGBA[CAM_COUNT];
@@ -169,8 +172,15 @@ void * WindowThread(void * serv) {
 
 		UpdateGUI(wlmCarton, server, window);
 
-		prevKeyY = currKeyY;
-		currKeyY = Keyboard::isKeyPressed(Keyboard::Y);
+		prevKeyO = currKeyO;
+		prevKeyL = currKeyL;
+		prevKeyI = currKeyI;
+		prevKeyK = currKeyK;
+
+		currKeyO = Keyboard::isKeyPressed(Keyboard::O);
+		currKeyL = Keyboard::isKeyPressed(Keyboard::L);
+		currKeyI = Keyboard::isKeyPressed(Keyboard::I);
+		currKeyK = Keyboard::isKeyPressed(Keyboard::K);
 
 		window.display();
 
@@ -190,50 +200,53 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 2) || (!IO::IsJoyConnected(JOY_NUM) && (prevKeyY && !currKeyY))) {
+			if (IO::JoyButtonTrig(JOY_NUM, 3)
+					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyO && currKeyO)) {
 				Packet packet;
-				packet << AUTO_PACKET_1;
+				packet << MINER_MOVE_PACKET << 1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 3)
+					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyO && !currKeyO)) {
+				Packet packet;
+				packet << MINER_MOVE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 1)) {
+			if (IO::JoyButtonTrig(JOY_NUM, 2)
+					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyL && currKeyL)) {
 				Packet packet;
-				packet << AUTO_PACKET_1 + 1;
+				packet << MINER_MOVE_PACKET << -1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 2)
+					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyL && !currKeyL)) {
+				Packet packet;
+				packet << MINER_MOVE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 3)) {
+			if (IO::JoyButtonTrig(JOY_NUM, 4)
+					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyI && currKeyI)) {
 				Packet packet;
-				packet << AUTO_PACKET_1 + 2;
+				packet << MINER_SPIN_PACKET << 1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 4)
+					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyI && !currKeyI)) {
+				Packet packet;
+				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 4)) {
+			if (IO::JoyButtonTrig(JOY_NUM, 5)
+					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyK && currKeyK)) {
 				Packet packet;
-				packet << AUTO_PACKET_1 + 3;
+				packet << MINER_SPIN_PACKET << -1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 5)
+					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyK && !currKeyK)) {
+				Packet packet;
+				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
-
-			/*if (Keyboard::isKeyPressed(Keyboard::C)) {
-			 Packet camPacket;
-			 camPacket << CAMERA_PACKET;
-			 camPacket << frameRGB.rows;
-			 camPacket << frameRGB.cols;
-
-			 uint8_t* pixelPtr = (uint8_t*) frameRGB.data;
-			 for (int y = 0; y < frameRGB.rows; y++) {
-			 for (int x = 0; x < frameRGB.cols; x++) {
-			 camPacket
-			 << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 0];
-			 camPacket
-			 << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 1];
-			 camPacket
-			 << pixelPtr[y * frameRGB.cols * 3 + x * 3 + 2];
-			 }
-			 }
-
-			 server->Send(camPacket);
-			 }*/
 		}
 	}
 

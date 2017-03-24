@@ -14,6 +14,7 @@ public:
 	static double JoyY(unsigned int stick);
 	static bool JoyButton(unsigned int stick, unsigned int button);
 	static bool JoyButtonTrig(unsigned int stick, unsigned int button);
+	static bool JoyButtonUntrig(unsigned int stick, unsigned int button);
 	static bool IsJoyConnected(unsigned int stick);
 
 	static void UpdateButtonStates();
