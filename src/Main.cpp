@@ -35,6 +35,8 @@ bool prevKeyO, currKeyO;
 bool prevKeyL, currKeyL;
 bool prevKeyI, currKeyI;
 bool prevKeyK, currKeyK;
+bool prevKeyU, currKeyU;
+bool prevKeyJ, currKeyJ;
 
 sf::Mutex mutex_cameraVars;
 cv::Mat frameRGB[CAM_COUNT], frameRGBA[CAM_COUNT];
@@ -176,11 +178,15 @@ void * WindowThread(void * serv) {
 		prevKeyL = currKeyL;
 		prevKeyI = currKeyI;
 		prevKeyK = currKeyK;
+		prevKeyU = currKeyU;
+		prevKeyJ = currKeyJ;
 
 		currKeyO = Keyboard::isKeyPressed(Keyboard::O);
 		currKeyL = Keyboard::isKeyPressed(Keyboard::L);
 		currKeyI = Keyboard::isKeyPressed(Keyboard::I);
 		currKeyK = Keyboard::isKeyPressed(Keyboard::K);
+		currKeyU = Keyboard::isKeyPressed(Keyboard::U);
+		currKeyJ = Keyboard::isKeyPressed(Keyboard::J);
 
 		window.display();
 
@@ -245,6 +251,30 @@ void * WindowThread(void * serv) {
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyK && !currKeyK)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 8)
+					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyU && currKeyU)) {
+				Packet packet;
+				packet << BIN_SLIDE_PACKET << -1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 8)
+					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyU && !currKeyU)) {
+				Packet packet;
+				packet << BIN_SLIDE_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 9)
+					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyJ && currKeyJ)) {
+				Packet packet;
+				packet << BIN_SLIDE_PACKET << 1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 9)
+					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyJ && !currKeyJ)) {
+				Packet packet;
+				packet << BIN_SLIDE_PACKET << 0;
 				server->Send(packet);
 			}
 		}
