@@ -37,6 +37,7 @@ bool prevKeyI, currKeyI;
 bool prevKeyK, currKeyK;
 bool prevKeyU, currKeyU;
 bool prevKeyJ, currKeyJ;
+bool prevKeyM, currKeyM;
 
 sf::Mutex mutex_cameraVars;
 cv::Mat frameRGB[CAM_COUNT], frameRGBA[CAM_COUNT];
@@ -180,6 +181,7 @@ void * WindowThread(void * serv) {
 		prevKeyK = currKeyK;
 		prevKeyU = currKeyU;
 		prevKeyJ = currKeyJ;
+		prevKeyM = currKeyM;
 
 		currKeyO = Keyboard::isKeyPressed(Keyboard::O);
 		currKeyL = Keyboard::isKeyPressed(Keyboard::L);
@@ -187,6 +189,7 @@ void * WindowThread(void * serv) {
 		currKeyK = Keyboard::isKeyPressed(Keyboard::K);
 		currKeyU = Keyboard::isKeyPressed(Keyboard::U);
 		currKeyJ = Keyboard::isKeyPressed(Keyboard::J);
+		currKeyM = Keyboard::isKeyPressed(Keyboard::M);
 
 		window.display();
 
@@ -206,75 +209,85 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 3)
+			if (IO::JoyButtonTrig(JOY_NUM, 2)
 					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyO && currKeyO)) {
 				Packet packet;
 				packet << MINER_MOVE_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 3)
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 2)
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyO && !currKeyO)) {
 				Packet packet;
 				packet << MINER_MOVE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 2)
+			if (IO::JoyButtonTrig(JOY_NUM, 1)
 					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyL && currKeyL)) {
 				Packet packet;
 				packet << MINER_MOVE_PACKET << -1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 2)
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 1)
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyL && !currKeyL)) {
 				Packet packet;
 				packet << MINER_MOVE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 4)
+			if (IO::JoyButtonTrig(JOY_NUM, 3)
 					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyI && currKeyI)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 4)
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 3)
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyI && !currKeyI)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 5)
+			if (IO::JoyButtonTrig(JOY_NUM, 4)
 					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyK && currKeyK)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << -1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 5)
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 4)
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyK && !currKeyK)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 8)
+			if (IO::JoyButtonTrig(JOY_NUM, 7)
 					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyU && currKeyU)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << -1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 8)
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 7)
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyU && !currKeyU)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 9)
+			if (IO::JoyButtonTrig(JOY_NUM, 8)
 					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyJ && currKeyJ)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 9)
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 8)
 					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyJ && !currKeyJ)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_NUM, 0) || (!IO::IsJoyConnected(JOY_NUM) && !prevKeyM && currKeyM)) {
+				Packet packet;
+				packet << CONVEYOR_PACKET << 1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_NUM, 0) || (!IO::IsJoyConnected(JOY_NUM) && prevKeyM && !currKeyM)) {
+				Packet packet;
+				packet << CONVEYOR_PACKET << 0;
 				server->Send(packet);
 			}
 		}
