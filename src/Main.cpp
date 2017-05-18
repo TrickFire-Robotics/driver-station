@@ -12,7 +12,8 @@
 #include "IO.h"
 #include "NetworkingConstants.h"
 
-#define JOY_NUM 0
+#define JOY_L 0
+#define JOY_R 1
 
 #define JOY_MIN_DELTA 0.01
 
@@ -30,7 +31,9 @@
 using namespace std;
 using namespace trickfire;
 
-double prevJoyX, prevJoyY;
+double prevJoyL, prevJoyR;
+bool prevKeyP, currKeyP;
+bool prevKeySemi, currKeySemi;
 bool prevKeyO, currKeyO;
 bool prevKeyL, currKeyL;
 bool prevKeyI, currKeyI;
@@ -38,6 +41,11 @@ bool prevKeyK, currKeyK;
 bool prevKeyU, currKeyU;
 bool prevKeyJ, currKeyJ;
 bool prevKeyM, currKeyM;
+
+bool prevKeyT, currKeyT;
+bool prevKeyG, currKeyG;
+
+double liftMod = 1.0;
 
 sf::Mutex mutex_cameraVars;
 cv::Mat frameRGB[CAM_COUNT], frameRGBA[CAM_COUNT];
@@ -117,17 +125,17 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 				false, font, Color::Red, window);
 	}
 
-	Vector2f joyXLabelSize = DrawingUtil::DrawGenericHeader("Joy X",
+	Vector2f joyLLabelSize = DrawingUtil::DrawGenericHeader("Joy L",
 			Vector2f(COL1, ROW2), false, font, Color::Green, window);
-	DrawingUtil::DrawCenteredAxisBar(IO::JoyX(JOY_NUM),
-			Vector2f(COL1 + (joyXLabelSize.x / 2) - 20, ROW3),
+	DrawingUtil::DrawCenteredAxisBar(IO::JoyY(JOY_L),
+			Vector2f(COL1 + (joyLLabelSize.x / 2) - 20, ROW3),
 			Vector2f(40, 264), Vector2f(4, 4), background, Color::Green,
 			window);
 
-	Vector2f joyYLabelSize = DrawingUtil::DrawGenericHeader("Joy Y",
+	Vector2f joyRLabelSize = DrawingUtil::DrawGenericHeader("Joy R",
 			Vector2f(COL2, ROW2), false, font, Color::Green, window);
-	DrawingUtil::DrawCenteredAxisBar(IO::JoyY(JOY_NUM),
-			Vector2f(COL2 + (joyYLabelSize.x / 2) - 20, ROW3),
+	DrawingUtil::DrawCenteredAxisBar(IO::JoyY(JOY_R),
+			Vector2f(COL2 + (joyRLabelSize.x / 2) - 20, ROW3),
 			Vector2f(40, 264), Vector2f(4, 4), background, Color::Green,
 			window);
 
@@ -175,6 +183,8 @@ void * WindowThread(void * serv) {
 
 		UpdateGUI(wlmCarton, server, window);
 
+		prevKeyP = currKeyP;
+		prevKeySemi = currKeySemi;
 		prevKeyO = currKeyO;
 		prevKeyL = currKeyL;
 		prevKeyI = currKeyI;
@@ -183,6 +193,14 @@ void * WindowThread(void * serv) {
 		prevKeyJ = currKeyJ;
 		prevKeyM = currKeyM;
 
+		prevKeyT = currKeyT;
+		prevKeyG = currKeyG;
+
+		currKeyT = Keyboard::isKeyPressed(Keyboard::T);
+		currKeyG = Keyboard::isKeyPressed(Keyboard::G);
+
+		currKeyP = Keyboard::isKeyPressed(Keyboard::P);
+		currKeySemi = Keyboard::isKeyPressed(Keyboard::SemiColon);
 		currKeyO = Keyboard::isKeyPressed(Keyboard::O);
 		currKeyL = Keyboard::isKeyPressed(Keyboard::L);
 		currKeyI = Keyboard::isKeyPressed(Keyboard::I);
@@ -194,100 +212,139 @@ void * WindowThread(void * serv) {
 		window.display();
 
 		if (server->IsConnected()) {
-			double joyDX = IO::JoyX(JOY_NUM) - prevJoyX;
-			double joyDY = IO::JoyY(JOY_NUM) - prevJoyY;
+			double joyDL = IO::JoyY(JOY_L) - prevJoyL;
+			double joyDR = IO::JoyY(JOY_R) - prevJoyR;
 			double driveScale = 1.0;
 
-			if (sqrt(joyDX * joyDX + joyDY * joyDY) >= JOY_MIN_DELTA) {
-				prevJoyX = IO::JoyX(JOY_NUM) * driveScale;
-				prevJoyY = IO::JoyY(JOY_NUM) * driveScale;
+			if (sqrt(joyDL * joyDL + joyDR * joyDR) >= JOY_MIN_DELTA) {
+				prevJoyL = IO::JoyY(JOY_L) * driveScale;
+				prevJoyR = IO::JoyY(JOY_R) * driveScale;
 
 				Packet packet;
 				packet << DRIVE_PACKET;
-				packet << IO::JoyY(JOY_NUM) * driveScale;
-				packet << IO::JoyX(JOY_NUM) * driveScale;
+				packet << IO::JoyY(JOY_L) * driveScale;
+				packet << IO::JoyY(JOY_R) * driveScale;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 2)
-					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyO && currKeyO)) {
+			if (IO::JoyButtonTrig(JOY_L, 10)
+				|| (!IO::IsJoyConnected(JOY_L) && !prevKeyP && currKeyP)) {
 				Packet packet;
-				packet << MINER_MOVE_PACKET << 1;
+				packet << MINER_MOVE_S2_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 2)
-					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyO && !currKeyO)) {
+			} else if (IO::JoyButtonUntrig(JOY_L, 10)
+				|| (!IO::IsJoyConnected(JOY_L) && prevKeyP && !currKeyP)) {
 				Packet packet;
-				packet << MINER_MOVE_PACKET << 0;
-				server->Send(packet);
-			}
-
-			if (IO::JoyButtonTrig(JOY_NUM, 1)
-					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyL && currKeyL)) {
-				Packet packet;
-				packet << MINER_MOVE_PACKET << -1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 1)
-					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyL && !currKeyL)) {
-				Packet packet;
-				packet << MINER_MOVE_PACKET << 0;
+				packet << MINER_MOVE_S2_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 3)
-					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyI && currKeyI)) {
+			if (IO::JoyButtonTrig(JOY_L, 9)
+				|| (!IO::IsJoyConnected(JOY_L) && !prevKeySemi && currKeySemi)) {
+				Packet packet;
+				packet << MINER_MOVE_S2_PACKET << -1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_L, 9)
+				|| (!IO::IsJoyConnected(JOY_L) && prevKeySemi && !currKeySemi)) {
+				Packet packet;
+				packet << MINER_MOVE_S2_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_L, 5)
+					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyO && currKeyO)) {
+				Packet packet;
+				packet << MINER_MOVE_S1_PACKET << 1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_L, 5)
+					|| (!IO::IsJoyConnected(JOY_L) && prevKeyO && !currKeyO)) {
+				Packet packet;
+				packet << MINER_MOVE_S1_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_L, 6)
+					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyL && currKeyL)) {
+				Packet packet;
+				packet << MINER_MOVE_S1_PACKET << -1;
+				server->Send(packet);
+			} else if (IO::JoyButtonUntrig(JOY_L, 6)
+					|| (!IO::IsJoyConnected(JOY_L) && prevKeyL && !currKeyL)) {
+				Packet packet;
+				packet << MINER_MOVE_S1_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::JoyButtonTrig(JOY_L, 3)
+					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyI && currKeyI)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 3)
-					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyI && !currKeyI)) {
+			} else if (IO::JoyButtonUntrig(JOY_L, 3)
+					|| (!IO::IsJoyConnected(JOY_L) && prevKeyI && !currKeyI)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 4)
-					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyK && currKeyK)) {
+			if (IO::JoyButtonTrig(JOY_L, 4)
+					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyK && currKeyK)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << -1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 4)
-					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyK && !currKeyK)) {
+			} else if (IO::JoyButtonUntrig(JOY_L, 4)
+					|| (!IO::IsJoyConnected(JOY_L) && prevKeyK && !currKeyK)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 7)
-					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyU && currKeyU)) {
+			if (IO::JoyButtonTrig(JOY_L, 7)
+					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyU && currKeyU)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << -1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 7)
-					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyU && !currKeyU)) {
+			} else if (IO::JoyButtonUntrig(JOY_L, 7)
+					|| (!IO::IsJoyConnected(JOY_L) && prevKeyU && !currKeyU)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 8)
-					|| (!IO::IsJoyConnected(JOY_NUM) && !prevKeyJ && currKeyJ)) {
+			if (IO::JoyButtonTrig(JOY_L, 8)
+					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyJ && currKeyJ)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 8)
-					|| (!IO::IsJoyConnected(JOY_NUM) && prevKeyJ && !currKeyJ)) {
+			} else if (IO::JoyButtonUntrig(JOY_L, 8)
+					|| (!IO::IsJoyConnected(JOY_L) && prevKeyJ && !currKeyJ)) {
 				Packet packet;
 				packet << BIN_SLIDE_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_NUM, 0) || (!IO::IsJoyConnected(JOY_NUM) && !prevKeyM && currKeyM)) {
+			if (IO::JoyButtonTrig(JOY_L, 0) || (!IO::IsJoyConnected(JOY_L) && !prevKeyM && currKeyM)) {
 				Packet packet;
 				packet << CONVEYOR_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_NUM, 0) || (!IO::IsJoyConnected(JOY_NUM) && prevKeyM && !currKeyM)) {
+			} else if (IO::JoyButtonUntrig(JOY_L, 0) || (!IO::IsJoyConnected(JOY_L) && prevKeyM && !currKeyM)) {
 				Packet packet;
 				packet << CONVEYOR_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (prevKeyT && !currKeyT) {
+				liftMod += 0.05;
+				cout << "Lift mod now " << liftMod << endl;
+				Packet packet;
+				packet << CONVEYOR_PACKET + 1 << liftMod;
+				server->Send(packet);
+			}
+			if (prevKeyG && !currKeyG) {
+				liftMod -= 0.05;
+				cout << "Lift mod now " << liftMod << endl;
+				Packet packet;
+				packet << CONVEYOR_PACKET + 1 << liftMod;
 				server->Send(packet);
 			}
 		}
@@ -299,6 +356,8 @@ void * WindowThread(void * serv) {
 int main() {
 	Logger::SetLoggingLevel(Logger::LEVEL_INFO_FINE);
 
+	IO::StartOI();
+
 	Server server(25565);
 	server.SetMessageCallback(PacketReceived);
 
@@ -308,6 +367,8 @@ int main() {
 	pthread_join(windowThread, NULL);
 
 	server.Disconnect();
+
+	IO::StopOI();
 
 	return 0;
 }
