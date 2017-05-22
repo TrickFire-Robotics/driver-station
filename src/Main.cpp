@@ -227,126 +227,252 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 10)
-				|| (!IO::IsJoyConnected(JOY_L) && !prevKeyP && currKeyP)) {
-				Packet packet;
-				packet << MINER_MOVE_S2_PACKET << 1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 10)
-				|| (!IO::IsJoyConnected(JOY_L) && prevKeyP && !currKeyP)) {
-				Packet packet;
-				packet << MINER_MOVE_S2_PACKET << 0;
-				server->Send(packet);
+			/*if (IO::JoyButtonTrig(JOY_L, 10)
+			 || (!IO::IsJoyConnected(JOY_L) && !prevKeyP && currKeyP)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S2_PACKET << 1;
+			 server->Send(packet);
+			 } else if (IO::JoyButtonUntrig(JOY_L, 10)
+			 || (!IO::IsJoyConnected(JOY_L) && prevKeyP && !currKeyP)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S2_PACKET << 0;
+			 server->Send(packet);
+			 }
+
+			 if (IO::JoyButtonTrig(JOY_L, 9)
+			 || (!IO::IsJoyConnected(JOY_L) && !prevKeySemi
+			 && currKeySemi)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S2_PACKET << -1;
+			 server->Send(packet);
+			 } else if (IO::JoyButtonUntrig(JOY_L, 9)
+			 || (!IO::IsJoyConnected(JOY_L) && prevKeySemi
+			 && !currKeySemi)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S2_PACKET << 0;
+			 server->Send(packet);
+			 }*/
+
+			/*if (IO::JoyButtonTrig(JOY_L, 5)
+			 || (!IO::IsJoyConnected(JOY_L) && !prevKeyO && currKeyO)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S1_PACKET << 1;
+			 server->Send(packet);
+			 } else if (IO::JoyButtonUntrig(JOY_L, 5)
+			 || (!IO::IsJoyConnected(JOY_L) && prevKeyO && !currKeyO)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S1_PACKET << 0;
+			 server->Send(packet);
+			 }
+
+			 if (IO::JoyButtonTrig(JOY_L, 6)
+			 || (!IO::IsJoyConnected(JOY_L) && !prevKeyL && currKeyL)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S1_PACKET << -1;
+			 server->Send(packet);
+			 } else if (IO::JoyButtonUntrig(JOY_L, 6)
+			 || (!IO::IsJoyConnected(JOY_L) && prevKeyL && !currKeyL)) {
+			 Packet packet;
+			 packet << MINER_MOVE_S1_PACKET << 0;
+			 server->Send(packet);
+			 }*/
+
+			if (IO::OIButton(L_STAGE1POSU)) {
+				// If anything changes/changed send refresh packet
+				if (IO::OIButtonTrig(L_STAGE1POSU)
+						|| IO::OIButtonTrig(L_STAGE1LIFTL)
+						|| IO::OIButtonTrig(L_STAGE1LIFTR)
+						|| IO::OIButtonUntrig(L_STAGE1LIFTL)
+						|| IO::OIButtonUntrig(L_STAGE1LIFTR)) {
+					// Send refresh packet
+					Packet packet;
+					packet << MINER_MOVE_S1_PACKET << 1
+							<< !IO::OIButton(L_STAGE1LIFTL) * 1.0
+							<< !IO::OIButton(L_STAGE1LIFTR) * 1.0;
+					server->Send(packet);
+				}
+			} else {
+				if (IO::OIButtonUntrig(L_STAGE1POSU)) {
+					// Just stopped moving, send a stop packet
+					Packet packet;
+					packet << MINER_MOVE_S1_PACKET << 0 << 0.0 << 0.0;
+					server->Send(packet);
+				}
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 9)
-				|| (!IO::IsJoyConnected(JOY_L) && !prevKeySemi && currKeySemi)) {
-				Packet packet;
-				packet << MINER_MOVE_S2_PACKET << -1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 9)
-				|| (!IO::IsJoyConnected(JOY_L) && prevKeySemi && !currKeySemi)) {
-				Packet packet;
-				packet << MINER_MOVE_S2_PACKET << 0;
-				server->Send(packet);
+			if (IO::OIButton(L_STAGE1POSD)) {
+				// If anything changes send refresh packet
+				if (IO::OIButtonTrig(L_STAGE1POSD)
+						|| IO::OIButtonTrig(L_STAGE1LIFTL)
+						|| IO::OIButtonTrig(L_STAGE1LIFTR)
+						|| IO::OIButtonUntrig(L_STAGE1LIFTL)
+						|| IO::OIButtonUntrig(L_STAGE1LIFTR)) {
+					// Send refresh packet
+					Packet packet;
+					packet << MINER_MOVE_S1_PACKET << -1
+							<< !IO::OIButton(L_STAGE1LIFTL) * -1.0
+							<< !IO::OIButton(L_STAGE1LIFTR) * -1.0;
+					server->Send(packet);
+				}
+			} else {
+				if (IO::OIButtonUntrig(L_STAGE1POSD)) {
+					// Just stopped moving, send a stop packet
+					Packet packet;
+					packet << MINER_MOVE_S1_PACKET << 0 << 0.0 << 0.0;
+					server->Send(packet);
+				}
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 5)
-					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyO && currKeyO)) {
-				Packet packet;
-				packet << MINER_MOVE_S1_PACKET << 1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 5)
-					|| (!IO::IsJoyConnected(JOY_L) && prevKeyO && !currKeyO)) {
-				Packet packet;
-				packet << MINER_MOVE_S1_PACKET << 0;
-				server->Send(packet);
+			if (IO::OIButton(L_STAGE2POSU)) {
+				// If anything changes/changed send refresh packet
+				if (IO::OIButtonTrig(L_STAGE2POSU)
+						|| IO::OIButtonTrig(L_STAGE2LIFTL)
+						|| IO::OIButtonTrig(L_STAGE2LIFTR)
+						|| IO::OIButtonUntrig(L_STAGE2LIFTL)
+						|| IO::OIButtonUntrig(L_STAGE2LIFTR)) {
+					// Send refresh packet
+					Packet packet;
+					packet << MINER_MOVE_S2_PACKET << 1
+							<< !IO::OIButton(L_STAGE2LIFTL) * 1.0
+							<< !IO::OIButton(L_STAGE2LIFTR) * 1.0;
+					server->Send(packet);
+				}
+			} else {
+				if (IO::OIButtonUntrig(L_STAGE2POSU)) {
+					// Just stopped moving, send a stop packet
+					Packet packet;
+					packet << MINER_MOVE_S2_PACKET << 0 << 0.0 << 0.0;
+					server->Send(packet);
+				}
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 6)
-					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyL && currKeyL)) {
-				Packet packet;
-				packet << MINER_MOVE_S1_PACKET << -1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 6)
-					|| (!IO::IsJoyConnected(JOY_L) && prevKeyL && !currKeyL)) {
-				Packet packet;
-				packet << MINER_MOVE_S1_PACKET << 0;
-				server->Send(packet);
+			if (IO::OIButton(L_STAGE2POSD)) {
+				// If anything changes send refresh packet
+				if (IO::OIButtonTrig(L_STAGE2POSD)
+						|| IO::OIButtonTrig(L_STAGE2LIFTL)
+						|| IO::OIButtonTrig(L_STAGE2LIFTR)
+						|| IO::OIButtonUntrig(L_STAGE2LIFTL)
+						|| IO::OIButtonUntrig(L_STAGE2LIFTR)) {
+					// Send refresh packet
+					Packet packet;
+					packet << MINER_MOVE_S2_PACKET << -1
+							<< !IO::OIButton(L_STAGE2LIFTL) * -1.0
+							<< !IO::OIButton(L_STAGE2LIFTR) * -1.0;
+					server->Send(packet);
+				}
+			} else {
+				if (IO::OIButtonUntrig(L_STAGE2POSD)) {
+					// Just stopped moving, send a stop packet
+					Packet packet;
+					packet << MINER_MOVE_S2_PACKET << 0 << 0.0 << 0.0;
+					server->Send(packet);
+				}
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 3)
-					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyI && currKeyI)) {
-				Packet packet;
-				packet << MINER_SPIN_PACKET << 1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 3)
-					|| (!IO::IsJoyConnected(JOY_L) && prevKeyI && !currKeyI)) {
-				Packet packet;
-				packet << MINER_SPIN_PACKET << 0;
-				server->Send(packet);
-			}
-
-			if (IO::JoyButtonTrig(JOY_L, 4)
-					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyK && currKeyK)) {
+			if (IO::OIButtonTrig(CM_DUMP)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << -1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 4)
-					|| (!IO::IsJoyConnected(JOY_L) && prevKeyK && !currKeyK)) {
+			} else if (IO::OIButtonUntrig(CM_DUMP)) {
 				Packet packet;
 				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 7)
-					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyU && currKeyU)) {
+			if (IO::OIButtonTrig(CM_DIG)) {
 				Packet packet;
-				packet << BIN_SLIDE_PACKET << -1;
+				packet << MINER_SPIN_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 7)
-					|| (!IO::IsJoyConnected(JOY_L) && prevKeyU && !currKeyU)) {
+			} else if (IO::OIButtonUntrig(CM_DIG)) {
 				Packet packet;
-				packet << BIN_SLIDE_PACKET << 0;
+				packet << MINER_SPIN_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 8)
-					|| (!IO::IsJoyConnected(JOY_L) && !prevKeyJ && currKeyJ)) {
-				Packet packet;
-				packet << BIN_SLIDE_PACKET << 1;
-				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 8)
-					|| (!IO::IsJoyConnected(JOY_L) && prevKeyJ && !currKeyJ)) {
-				Packet packet;
-				packet << BIN_SLIDE_PACKET << 0;
-				server->Send(packet);
+			// ----- Bin Sliding -----
+			if (IO::OIButton(B_POSOVERRIDE)) {
+				// If it was just activated kill the slide
+				if (IO::OIButtonTrig(B_POSOVERRIDE)) {
+					// Send a stop command
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << 0;
+					server->Send(packet);
+				}
+
+				// Enable override buttons
+				if (IO::OIButtonTrig(B_TOCOLLECT)) { // TODO: CHANGE TO MANUAL
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << -1;
+					server->Send(packet);
+				} else if (IO::OIButtonUntrig(B_TOCOLLECT)) { // TODO: CHANGE TO MANUAL
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << 0;
+					server->Send(packet);
+				}
+
+				if (IO::OIButtonTrig(B_TODUMP)) { // TODO: CHANGE TO MANUAL
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << 1;
+					server->Send(packet);
+				} else if (IO::OIButtonUntrig(B_TODUMP)) { // TODO: CHANGE TO MANUAL
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << 0;
+					server->Send(packet);
+				}
+			} else {
+				if (IO::OIButtonUntrig(B_POSOVERRIDE)) {
+					// Send a stop command
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << 0;
+					server->Send(packet);
+				}
+
+				if (IO::OIButtonTrig(B_TODUMP)) {
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << 2;
+					server->Send(packet);
+				}
+				if (IO::OIButtonTrig(B_TOCOLLECT)) {
+					Packet packet;
+					packet << BIN_SLIDE_PACKET << -2;
+					server->Send(packet);
+				}
 			}
 
-			if (IO::JoyButtonTrig(JOY_L, 0) || (!IO::IsJoyConnected(JOY_L) && !prevKeyM && currKeyM)) {
+			if (IO::OIButtonTrig(C_DUMP)) {
 				Packet packet;
 				packet << CONVEYOR_PACKET << 1;
 				server->Send(packet);
-			} else if (IO::JoyButtonUntrig(JOY_L, 0) || (!IO::IsJoyConnected(JOY_L) && prevKeyM && !currKeyM)) {
+			} else if (IO::OIButtonUntrig(C_DUMP)) {
 				Packet packet;
 				packet << CONVEYOR_PACKET << 0;
 				server->Send(packet);
 			}
 
-			if (prevKeyT && !currKeyT) {
-				liftMod += 0.05;
-				cout << "Lift mod now " << liftMod << endl;
+			if (IO::OIButtonTrig(C_REV)) {
 				Packet packet;
-				packet << CONVEYOR_PACKET + 1 << liftMod;
+				packet << CONVEYOR_PACKET << -1;
+				server->Send(packet);
+			} else if (IO::OIButtonUntrig(C_REV)) {
+				Packet packet;
+				packet << CONVEYOR_PACKET << 0;
 				server->Send(packet);
 			}
-			if (prevKeyG && !currKeyG) {
-				liftMod -= 0.05;
-				cout << "Lift mod now " << liftMod << endl;
-				Packet packet;
-				packet << CONVEYOR_PACKET + 1 << liftMod;
-				server->Send(packet);
-			}
+
+			/*if (prevKeyT && !currKeyT) {
+			 liftMod += 0.05;
+			 cout << "Lift mod now " << liftMod << endl;
+			 Packet packet;
+			 packet << CONVEYOR_PACKET + 1 << liftMod;
+			 server->Send(packet);
+			 }
+			 if (prevKeyG && !currKeyG) {
+			 liftMod -= 0.05;
+			 cout << "Lift mod now " << liftMod << endl;
+			 Packet packet;
+			 packet << CONVEYOR_PACKET + 1 << liftMod;
+			 server->Send(packet);
+			 }*/
 		}
 	}
 

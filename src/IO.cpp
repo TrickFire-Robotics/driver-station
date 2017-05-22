@@ -71,7 +71,7 @@ void IO::ThreadLoop() {
 	}
 
 	while (oiRunning) {
-		unsigned char val;
+		unsigned char val = 0;
 		if (read(oiFD, &val, 1) > 0) {
 			if (val == 255) {
 				// This is the divider
@@ -84,23 +84,24 @@ void IO::ThreadLoop() {
 					prevOIButtonStates[i] = currOIButtonStates[i];
 				}
 				for (unsigned int i = 0; i < currOIButtonStates.size(); i++) {
-					currOIButtonStates[i] = BIT(values[(int)floor(i / 8)], i % 8);
+					currOIButtonStates[i] = BIT(values[(int )floor(i / 8)],
+							i % 8);
 				}
 
 				mutex_OIvalues.unlock();
 			} else {
 				values[index] = val;
 				index++;
-				if (index >= max) index = max - 1;
+				if (index >= max)
+					index = max - 1;
 			}
 
-			for (int i = 0; i < currOIButtonStates.size(); i++) {
+			/*for (unsigned int i = 0; i < currOIButtonStates.size(); i++) {
 				std::cout << currOIButtonStates[i];
 			}
-			std::cout << std::endl;
-			/*if (OIButtonTrig(B_TODUMP)) {
-				std::cout << "Moving bin to dump!" << std::endl;
-			}*/
+
+			std::cout << std::endl;*/
+
 		}
 	}
 }
