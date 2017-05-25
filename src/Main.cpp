@@ -45,6 +45,13 @@ bool prevKeyM, currKeyM;
 bool prevKeyT, currKeyT;
 bool prevKeyG, currKeyG;
 
+bool prevNum0, currNum0;
+bool prevNum1, currNum1;
+
+bool img0Flip, img1Flip;
+
+sf::Mutex mut_Transmit;
+bool transmit = true;
 double liftMod = 1.0;
 
 sf::Mutex mutex_cameraVars;
@@ -88,6 +95,9 @@ void PacketReceived(Packet& packet) {
 					packet >> newdata[y * frameRGB[cam].cols * 3 + x * 3 + 2];
 				}
 			}
+			if ((cam == 0 && img0Flip) || (cam == 1 && img1Flip))
+				cv::flip(frameRGB[cam], frameRGB[cam], -1);
+
 			mutex_cameraVars.unlock();
 			break;
 		}
@@ -145,19 +155,25 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 		UpdateCameraFrame(i);
 	}
 
-	int targetSize = 320;
-	sprite[0].setScale((double) targetSize / texture[0].getSize().x,
-			(double) targetSize / texture[0].getSize().x);
-	sprite[0].setPosition(COL3, ROW2);
-	window.draw(sprite[0]);
-	sprite[1].setScale((double) targetSize / texture[0].getSize().x,
-			(double) targetSize / texture[0].getSize().x);
-	sprite[1].setPosition(COL1, ROW4);
-	window.draw(sprite[1]);
-	sprite[2].setScale((double) targetSize / texture[0].getSize().x,
-			(double) targetSize / texture[0].getSize().x);
-	sprite[2].setPosition(COL3, ROW4);
-	window.draw(sprite[2]);
+	mut_Transmit.lock();
+	bool dispCam = transmit;
+	mut_Transmit.unlock();
+
+	if (dispCam) {
+		int targetSize = 512;
+		sprite[0].setScale((double) targetSize / texture[0].getSize().x,
+				(double) targetSize / texture[0].getSize().x);
+		sprite[0].setPosition(COL3, ROW2);
+		window.draw(sprite[0]);
+		sprite[1].setScale((double) targetSize / texture[0].getSize().x,
+				(double) targetSize / texture[0].getSize().x);
+		sprite[1].setPosition(COL1, ROW4);
+		window.draw(sprite[1]);
+		sprite[2].setScale((double) targetSize / texture[0].getSize().x,
+				(double) targetSize / texture[0].getSize().x);
+		sprite[2].setPosition(COL3, ROW4);
+		window.draw(sprite[2]);
+	}
 	mutex_cameraVars.unlock();
 }
 
@@ -196,8 +212,8 @@ void * WindowThread(void * serv) {
 		prevKeyT = currKeyT;
 		prevKeyG = currKeyG;
 
-		currKeyT = Keyboard::isKeyPressed(Keyboard::T);
-		currKeyG = Keyboard::isKeyPressed(Keyboard::G);
+		prevNum0 = currNum0;
+		prevNum1 = currNum1;
 
 		currKeyP = Keyboard::isKeyPressed(Keyboard::P);
 		currKeySemi = Keyboard::isKeyPressed(Keyboard::SemiColon);
@@ -208,6 +224,20 @@ void * WindowThread(void * serv) {
 		currKeyU = Keyboard::isKeyPressed(Keyboard::U);
 		currKeyJ = Keyboard::isKeyPressed(Keyboard::J);
 		currKeyM = Keyboard::isKeyPressed(Keyboard::M);
+
+		currKeyT = Keyboard::isKeyPressed(Keyboard::T);
+		currKeyG = Keyboard::isKeyPressed(Keyboard::G);
+
+		currNum0 = Keyboard::isKeyPressed(Keyboard::Num0);
+		currNum1 = Keyboard::isKeyPressed(Keyboard::Num1);
+
+		if (prevNum0 && !currNum0) {
+			img0Flip = !img0Flip;
+		}
+
+		if (prevNum1 && !currNum1) {
+			img1Flip = !img1Flip;
+		}
 
 		window.display();
 
@@ -456,6 +486,14 @@ void * WindowThread(void * serv) {
 			} else if (IO::OIButtonUntrig(C_REV)) {
 				Packet packet;
 				packet << CONVEYOR_PACKET << 0;
+				server->Send(packet);
+			}
+
+			if (IO::OIButtonTrig(CM_LEVELCM) || (prevKeyT && !currKeyT)) {
+				sf::Lock lock(mut_Transmit);
+				transmit = !transmit;
+				Packet packet;
+				packet << CONVEYOR_PACKET + 1 << transmit;
 				server->Send(packet);
 			}
 

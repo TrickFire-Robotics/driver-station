@@ -17,7 +17,7 @@ bool IO::oiRunning;
 int IO::oiFD;
 
 void IO::StartOI() {
-	oiFD = open("/dev/ttyACM1", O_RDWR);
+	oiFD = open("/dev/ttyACM0", O_RDWR);
 
 	if (oiFD == -1) {
 		Logger::Log(Logger::LEVEL_ERROR_CRITICAL, "Failed to open OI port");
