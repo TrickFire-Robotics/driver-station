@@ -32,38 +32,33 @@ using namespace std;
 using namespace trickfire;
 
 double prevJoyL, prevJoyR;
-bool prevKeyP, currKeyP;
-bool prevKeySemi, currKeySemi;
-bool prevKeyO, currKeyO;
-bool prevKeyL, currKeyL;
-bool prevKeyI, currKeyI;
-bool prevKeyK, currKeyK;
-bool prevKeyU, currKeyU;
-bool prevKeyJ, currKeyJ;
-bool prevKeyM, currKeyM;
 
+// Key States (previous and current)
 bool prevKeyT, currKeyT;
-bool prevKeyG, currKeyG;
-
 bool prevNum0, currNum0;
 bool prevNum1, currNum1;
 
+// Whether camera images are rotated 180 degrees or not
+// (to fix physical camera rotation)
 bool img0Flip, img1Flip;
 
+// Whether or not we should transmit camera images
 sf::Mutex mut_Transmit;
 bool transmit = true;
-double liftMod = 1.0;
 
+// Camera feed components
 sf::Mutex mutex_cameraVars;
 cv::Mat frameRGB[CAM_COUNT], frameRGBA[CAM_COUNT];
 sf::Image image[CAM_COUNT];
 sf::Texture texture[CAM_COUNT];
 sf::Sprite sprite[CAM_COUNT];
 
-void UpdateCameraFrame(int cam) {
-	//cap >> frameRGB;
-	//double scale = 0.2;
-	//cv::resize(frameRGB, frameRGB, cv::Size(0, 0), scale, scale);
+/**
+ * Updates the camera feed variables for display to the window
+ *
+ * @param cam The camera feed index to update
+ */
+void UpdateCameraFeedGraphics(int cam) {
 	if (!frameRGB[cam].empty()) {
 		cv::cvtColor(frameRGB[cam], frameRGBA[cam], cv::COLOR_BGR2RGBA);
 		image[cam].create(frameRGBA[cam].cols, frameRGBA[cam].rows,
@@ -74,6 +69,11 @@ void UpdateCameraFrame(int cam) {
 	}
 }
 
+/**
+ * Called whenever a packet is received
+ *
+ * @param packet The packet received
+ */
 void PacketReceived(Packet& packet) {
 	while (!packet.endOfPacket()) {
 		int type = -1;
@@ -81,6 +81,7 @@ void PacketReceived(Packet& packet) {
 
 		switch (type) {
 		case CAMERA_PACKET: {
+			// Output the received camera data to our local varables
 			int cam;
 			int rows, cols;
 			packet >> cam >> rows >> cols;
@@ -102,12 +103,17 @@ void PacketReceived(Packet& packet) {
 			break;
 		}
 		default:
-
 			break;
 		}
 	}
 }
 
+/**
+ * Draws the TrickFire Driver Station header to the window
+ *
+ * @param font The font to write in
+ * @param window The window to draw the header to
+ */
 void DrawTrickFireHeader(Font& font, RenderWindow& window) {
 	Text header;
 	header.setFont(font);
@@ -120,13 +126,21 @@ void DrawTrickFireHeader(Font& font, RenderWindow& window) {
 	window.draw(header);
 }
 
+/**
+ * Updates the GUI of the window with all of the necessary information
+ *
+ * @param font The font to draw text in
+ * @param server The server to draw information from
+ * @param winow The window to draw to
+ */
 void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 	window.clear(Color::Black);
 
 	DrawTrickFireHeader(font, window);
 
-	Color background(64, 64, 64);
+	Color background(64, 64, 64); // The background color for bars
 
+	// Draw if the server is connected or not
 	if (server->IsConnected()) {
 		DrawingUtil::DrawGenericHeader("Connected", Vector2f(COL1, ROW1), false,
 				font, Color::Green, window);
@@ -135,6 +149,7 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 				false, font, Color::Red, window);
 	}
 
+	// Draw the joystick input values
 	Vector2f joyLLabelSize = DrawingUtil::DrawGenericHeader("Joy L",
 			Vector2f(COL1, ROW2), false, font, Color::Green, window);
 	DrawingUtil::DrawCenteredAxisBar(IO::JoyY(JOY_L),
@@ -152,9 +167,10 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 	// Camera feed
 	mutex_cameraVars.lock();
 	for (int i = 0; i < CAM_COUNT; i++) {
-		UpdateCameraFrame(i);
+		UpdateCameraFeedGraphics(i);
 	}
 
+	// If we're not transmitting a camera feed don't display it on the window
 	mut_Transmit.lock();
 	bool dispCam = transmit;
 	mut_Transmit.unlock();
@@ -177,6 +193,11 @@ void UpdateGUI(Font& font, Server * server, RenderWindow& window) {
 	mutex_cameraVars.unlock();
 }
 
+/**
+ * The method called once the window thread starts
+ *
+ * @param serv The server to dispay information from
+ */
 void * WindowThread(void * serv) {
 	Server* server = (Server*) serv;
 
@@ -190,47 +211,28 @@ void * WindowThread(void * serv) {
 	while (window.isOpen()) {
 		Event event;
 		while (window.pollEvent(event)) {
+			// Handle system windon events
 			if (event.type == sf::Event::Closed) {
 				window.close();
 			}
 		}
 
+		// Tell IO to track button states/changes
 		IO::UpdateButtonStates();
 
+		// Update the GUI
 		UpdateGUI(wlmCarton, server, window);
 
-		prevKeyP = currKeyP;
-		prevKeySemi = currKeySemi;
-		prevKeyO = currKeyO;
-		prevKeyL = currKeyL;
-		prevKeyI = currKeyI;
-		prevKeyK = currKeyK;
-		prevKeyU = currKeyU;
-		prevKeyJ = currKeyJ;
-		prevKeyM = currKeyM;
-
+		// Input updates
 		prevKeyT = currKeyT;
-		prevKeyG = currKeyG;
-
 		prevNum0 = currNum0;
 		prevNum1 = currNum1;
 
-		currKeyP = Keyboard::isKeyPressed(Keyboard::P);
-		currKeySemi = Keyboard::isKeyPressed(Keyboard::SemiColon);
-		currKeyO = Keyboard::isKeyPressed(Keyboard::O);
-		currKeyL = Keyboard::isKeyPressed(Keyboard::L);
-		currKeyI = Keyboard::isKeyPressed(Keyboard::I);
-		currKeyK = Keyboard::isKeyPressed(Keyboard::K);
-		currKeyU = Keyboard::isKeyPressed(Keyboard::U);
-		currKeyJ = Keyboard::isKeyPressed(Keyboard::J);
-		currKeyM = Keyboard::isKeyPressed(Keyboard::M);
-
 		currKeyT = Keyboard::isKeyPressed(Keyboard::T);
-		currKeyG = Keyboard::isKeyPressed(Keyboard::G);
-
 		currNum0 = Keyboard::isKeyPressed(Keyboard::Num0);
 		currNum1 = Keyboard::isKeyPressed(Keyboard::Num1);
 
+		// Flip images if necessary
 		if (prevNum0 && !currNum0) {
 			img0Flip = !img0Flip;
 		}
@@ -239,73 +241,38 @@ void * WindowThread(void * serv) {
 			img1Flip = !img1Flip;
 		}
 
+		// Draw the changes to the window
 		window.display();
 
+		// Handle input if the robot is actually connected
 		if (server->IsConnected()) {
 			double joyDL = IO::JoyY(JOY_L) - prevJoyL;
 			double joyDR = IO::JoyY(JOY_R) - prevJoyR;
 			double driveScale = 1.0;
 
+			// If the joystick has changed enough (prevents spam if used correctly)
 			if (sqrt(joyDL * joyDL + joyDR * joyDR) >= JOY_MIN_DELTA) {
 				prevJoyL = IO::JoyY(JOY_L) * driveScale;
 				prevJoyR = IO::JoyY(JOY_R) * driveScale;
+
+				// Get individual wheel control inputs
+				bool fl_raw = IO::JoyButton(JOY_L, 3);
+				bool rl_raw = IO::JoyButton(JOY_L, 4);
+				bool fr_raw = IO::JoyButton(JOY_R, 3);
+				bool rr_raw = IO::JoyButton(JOY_R, 4);
+
+				bool fl = (fl_raw == rl_raw) || fl_raw;
+				bool rl = (fl_raw == rl_raw) || rl_raw;
+				bool fr = (fr_raw == rr_raw) || fr_raw;
+				bool rr = (fr_raw == rr_raw) || rr_raw;
 
 				Packet packet;
 				packet << DRIVE_PACKET;
 				packet << IO::JoyY(JOY_L) * driveScale;
 				packet << IO::JoyY(JOY_R) * driveScale;
+				packet << fl << rl << fr << rr;
 				server->Send(packet);
 			}
-
-			/*if (IO::JoyButtonTrig(JOY_L, 10)
-			 || (!IO::IsJoyConnected(JOY_L) && !prevKeyP && currKeyP)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S2_PACKET << 1;
-			 server->Send(packet);
-			 } else if (IO::JoyButtonUntrig(JOY_L, 10)
-			 || (!IO::IsJoyConnected(JOY_L) && prevKeyP && !currKeyP)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S2_PACKET << 0;
-			 server->Send(packet);
-			 }
-
-			 if (IO::JoyButtonTrig(JOY_L, 9)
-			 || (!IO::IsJoyConnected(JOY_L) && !prevKeySemi
-			 && currKeySemi)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S2_PACKET << -1;
-			 server->Send(packet);
-			 } else if (IO::JoyButtonUntrig(JOY_L, 9)
-			 || (!IO::IsJoyConnected(JOY_L) && prevKeySemi
-			 && !currKeySemi)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S2_PACKET << 0;
-			 server->Send(packet);
-			 }*/
-
-			/*if (IO::JoyButtonTrig(JOY_L, 5)
-			 || (!IO::IsJoyConnected(JOY_L) && !prevKeyO && currKeyO)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S1_PACKET << 1;
-			 server->Send(packet);
-			 } else if (IO::JoyButtonUntrig(JOY_L, 5)
-			 || (!IO::IsJoyConnected(JOY_L) && prevKeyO && !currKeyO)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S1_PACKET << 0;
-			 server->Send(packet);
-			 }
-
-			 if (IO::JoyButtonTrig(JOY_L, 6)
-			 || (!IO::IsJoyConnected(JOY_L) && !prevKeyL && currKeyL)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S1_PACKET << -1;
-			 server->Send(packet);
-			 } else if (IO::JoyButtonUntrig(JOY_L, 6)
-			 || (!IO::IsJoyConnected(JOY_L) && prevKeyL && !currKeyL)) {
-			 Packet packet;
-			 packet << MINER_MOVE_S1_PACKET << 0;
-			 server->Send(packet);
-			 }*/
 
 			if (IO::OIButton(L_STAGE1POSU)) {
 				// If anything changes/changed send refresh packet
@@ -489,6 +456,7 @@ void * WindowThread(void * serv) {
 				server->Send(packet);
 			}
 
+			// Camera feed toggling
 			if (IO::OIButtonTrig(CM_LEVELCM) || (prevKeyT && !currKeyT)) {
 				sf::Lock lock(mut_Transmit);
 				transmit = !transmit;
@@ -496,21 +464,6 @@ void * WindowThread(void * serv) {
 				packet << CONVEYOR_PACKET + 1 << transmit;
 				server->Send(packet);
 			}
-
-			/*if (prevKeyT && !currKeyT) {
-			 liftMod += 0.05;
-			 cout << "Lift mod now " << liftMod << endl;
-			 Packet packet;
-			 packet << CONVEYOR_PACKET + 1 << liftMod;
-			 server->Send(packet);
-			 }
-			 if (prevKeyG && !currKeyG) {
-			 liftMod -= 0.05;
-			 cout << "Lift mod now " << liftMod << endl;
-			 Packet packet;
-			 packet << CONVEYOR_PACKET + 1 << liftMod;
-			 server->Send(packet);
-			 }*/
 		}
 	}
 
@@ -522,8 +475,10 @@ int main() {
 
 	IO::StartOI();
 
+	// Start the server
 	Server server(25565);
 	server.SetMessageCallback(PacketReceived);
+
 
 	pthread_t windowThread;
 	pthread_create(&windowThread, NULL, WindowThread, (void *) &server);
